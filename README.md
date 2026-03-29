@@ -1,4 +1,4 @@
-# squeekboard overlay-layer patch
+# Squeekboard Overlay-Layer Patch
 
 A one-line patch for [squeekboard](https://gitlab.gnome.org/World/Phosh/squeekboard) that makes the on-screen keyboard render **above fullscreen Wayland applications**.
 
