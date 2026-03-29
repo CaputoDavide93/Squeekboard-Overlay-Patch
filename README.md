@@ -163,4 +163,4 @@ An ideal upstream fix would be a command-line flag or config option (e.g. `--lay
 
 ## License
 
-The patch itself is trivial and released under [CC0](https://creativecommons.org/publicdomain/zero/1.0/). Squeekboard is licensed under [GPLv3](https://gitlab.gnome.org/World/Phosh/squeekboard/-/blob/master/COPYING).
+This project is licensed under [GPLv3](LICENSE), the same license as [squeekboard](https://gitlab.gnome.org/World/Phosh/squeekboard/-/blob/master/COPYING).
