@@ -99,7 +99,7 @@ Launch your Electron app with:
 --enable-wayland-ime
 ```
 
-For example, with [TouchKio](https://github.com/nickvdp/touchkio):
+For example, with [TouchKio](https://github.com/leukipp/touchkio):
 
 ```ini
 # ~/.config/systemd/user/touchkio.service
