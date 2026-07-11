@@ -187,3 +187,7 @@ An ideal upstream fix would be a command-line flag or config option (e.g. `--lay
 ## 📄 License
 
 This project is licensed under [GPLv3](LICENSE), the same license as [squeekboard](https://gitlab.gnome.org/World/Phosh/squeekboard/-/blob/master/COPYING).
+
+---
+
+<p align="center"><sub>Made with ❤️ by <a href="https://github.com/CaputoDavide93">Davide Caputo</a></sub></p>
