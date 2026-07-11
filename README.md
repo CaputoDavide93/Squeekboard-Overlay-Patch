@@ -1,8 +1,19 @@
-# Squeekboard Overlay-Layer Patch
+<div align="center">
 
-A one-line patch for [squeekboard](https://gitlab.gnome.org/World/Phosh/squeekboard) that makes the on-screen keyboard render **above fullscreen Wayland applications**.
+# ⌨️ Squeekboard Overlay-Layer Patch
 
-## The problem
+**A one-line patch that makes the [squeekboard](https://gitlab.gnome.org/World/Phosh/squeekboard) on-screen keyboard render above fullscreen Wayland apps.**
+
+![Shell](https://img.shields.io/badge/Shell-bash-4EAA25?logo=gnubash&logoColor=white)
+![Raspberry Pi](https://img.shields.io/badge/Raspberry%20Pi-5-C51A4A?logo=raspberrypi&logoColor=white)
+![Wayland](https://img.shields.io/badge/Wayland-labwc-1793D1?logo=wayland&logoColor=white)
+![License](https://img.shields.io/badge/License-GPLv3-blue)
+
+</div>
+
+---
+
+## 🐛 The problem
 
 On Raspberry Pi kiosk setups running a fullscreen Electron/Chromium app under **labwc** (or any wlroots-based compositor), squeekboard is invisible — it renders behind the fullscreen window.
 
@@ -20,7 +31,9 @@ BOTTOM / BACKGROUND
 
 Squeekboard uses `ZWLR_LAYER_SHELL_V1_LAYER_TOP`, which sits below fullscreen surfaces. The keyboard initialises, receives input-method events, and logs no errors — but is simply not visible.
 
-## The fix
+---
+
+## 🔧 The fix
 
 Change one constant in [`src/panel.c`](https://gitlab.gnome.org/World/Phosh/squeekboard/-/blob/master/src/panel.c):
 
@@ -31,13 +44,15 @@ Change one constant in [`src/panel.c`](https://gitlab.gnome.org/World/Phosh/sque
 
 This moves squeekboard to the `OVERLAY` layer, which renders above everything — including fullscreen surfaces.
 
-## Quick start
+---
+
+## 🚀 Quick start
 
 ### Option A: Automated build (Raspberry Pi)
 
 ```bash
-git clone https://github.com/CaputoDavide93/squeekboard-overlay-patch.git
-cd squeekboard-overlay-patch
+git clone https://github.com/CaputoDavide93/Squeekboard-Overlay-Patch.git
+cd Squeekboard-Overlay-Patch
 chmod +x build.sh
 ./build.sh
 ```
@@ -78,7 +93,9 @@ systemctl --user restart squeekboard
 
 > **Note:** Option C is fragile — it depends on the string representation in the binary and may not work on all versions. The source rebuild (Options A/B) is recommended.
 
-## Full kiosk setup
+---
+
+## 🖥️ Full kiosk setup
 
 For the on-screen keyboard to work with a fullscreen Electron app, you also need:
 
@@ -140,7 +157,9 @@ systemctl --user start squeekboard.service
 
 > The 3-second delay (`ExecStartPre=/bin/sleep 3`) ensures the kiosk app has fully started before squeekboard initialises.
 
-## Tested on
+---
+
+## ✅ Tested on
 
 | Component | Version |
 |---|---|
@@ -151,7 +170,9 @@ systemctl --user start squeekboard.service
 | Kiosk app | TouchKio (Electron) |
 | Home Assistant | 2026.2.x |
 
-## Why not upstream?
+---
+
+## 🧭 Why not upstream?
 
 This change makes squeekboard always render on the overlay layer, which is correct for fullscreen kiosk use cases. On a standard phone or desktop setup, `LAYER_TOP` is the right choice — the keyboard should not cover system overlays.
 
@@ -161,6 +182,8 @@ An ideal upstream fix would be a command-line flag or config option (e.g. `--lay
 - [labwc/labwc#1873](https://github.com/labwc/labwc/issues/1873) — Virtual keyboards discussion
 - [raspberrypi-ui/squeekboard#13](https://github.com/raspberrypi-ui/squeekboard/issues/13) — Squeekboard fullscreen fix
 
-## License
+---
+
+## 📄 License
 
 This project is licensed under [GPLv3](LICENSE), the same license as [squeekboard](https://gitlab.gnome.org/World/Phosh/squeekboard/-/blob/master/COPYING).

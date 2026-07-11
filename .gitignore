@@ -1,0 +1,8 @@
+# OS junk
+.DS_Store
+
+# Build output
+*.deb
+*.buildinfo
+*.changes
+squeekboard-*/
