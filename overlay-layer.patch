@@ -1,11 +1,21 @@
+Subject: Render the on-screen keyboard on the OVERLAY layer
+
+Squeekboard requests the layer-shell TOP layer, which wlroots-based
+compositors stack *below* fullscreen surfaces. In a fullscreen kiosk
+(e.g. Chromium/Electron under labwc) the keyboard is therefore never
+visible, even though it initialises and receives input-method events.
+
+Moving the panel to the OVERLAY layer stacks it above fullscreen
+surfaces, which is the desired behaviour for kiosk use.
+
 --- a/src/panel.c
 +++ b/src/panel.c
-@@ -66,7 +66,7 @@
-     "anchor", ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM
-     | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT
-     | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT,
--    "layer", ZWLR_LAYER_SHELL_V1_LAYER_TOP,
-+    "layer", ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY,
-     "kbd-interactivity", FALSE,
-     "exclusive-zone", height,
-     "namespace", "osk",
+@@ -79,7 +79,7 @@
+             "anchor", ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM
+             | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT
+             | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT,
+-            "layer", ZWLR_LAYER_SHELL_V1_LAYER_TOP,
++            "layer", ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY,
+             "kbd-interactivity", FALSE,
+             "exclusive-zone", height,
+             "namespace", "osk",
