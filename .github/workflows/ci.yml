@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Weekly upstream-drift check: fails if squeekboard changes src/panel.c
+    # in a way that stops the patch applying.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  patch-applies:
+    name: Patch applies (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: upstream
+            url: https://gitlab.gnome.org/World/Phosh/squeekboard/-/raw/master/src/panel.c
+          - name: raspberrypi-ui fork
+            url: https://raw.githubusercontent.com/raspberrypi-ui/squeekboard/master/src/panel.c
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch src/panel.c
+        run: |
+          mkdir -p work/src
+          curl -fsSL "${{ matrix.url }}" -o work/src/panel.c
+          test -s work/src/panel.c
+
+      - name: Patch applies cleanly
+        working-directory: work
+        run: patch -p1 --dry-run < ../overlay-layer.patch
+
+      - name: Patched source selects the OVERLAY layer
+        working-directory: work
+        run: |
+          patch -p1 < ../overlay-layer.patch
+          grep -q 'ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY' src/panel.c
+          ! grep -q 'ZWLR_LAYER_SHELL_V1_LAYER_TOP' src/panel.c
+
+  shellcheck:
+    name: Shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint build.sh
+        run: shellcheck build.sh
