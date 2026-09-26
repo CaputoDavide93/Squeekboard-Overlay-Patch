@@ -20,22 +20,11 @@ On a Raspberry Pi kiosk running a fullscreen Electron/Chromium app under **labwc
 
 The cause is the Wayland layer-shell stacking order. Fullscreen surfaces sit *between* the `TOP` and `OVERLAY` layers, and squeekboard requests `TOP`:
 
-```mermaid
-flowchart TB
-    OV["⬆️ <b>OVERLAY</b><br/>where the keyboard needs to be"]
-    FS["🖥️ <b>FULLSCREEN</b><br/>kiosk app — occludes everything below it"]
-    TOP["⌨️ <b>TOP</b><br/>where squeekboard asks to be by default"]
-    BG["🎨 <b>BOTTOM / BACKGROUND</b><br/>wallpaper, panels"]
-
-    OV -->|stacks above| FS
-    FS -->|stacks above| TOP
-    TOP -->|stacks above| BG
-
-    classDef want fill:#1f6f3f,stroke:#2ea043,color:#fff
-    classDef problem fill:#7d2020,stroke:#f85149,color:#fff
-    class OV want
-    class TOP problem
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/layers-dark.svg">
+  <img src="docs/assets/layers-light.svg" width="100%"
+       alt="Layer-shell stacking from top to bottom is OVERLAY, the fullscreen kiosk app, TOP, then BOTTOM and BACKGROUND, so stock squeekboard on TOP is hidden and the patch moves it to OVERLAY.">
+</picture>
 
 There is no compositor-side setting that fixes this. The layer-shell protocol has no way to say *"let this fullscreen window hide the panel but not the keyboard"*, so the fix has to happen in squeekboard.
 
@@ -63,35 +52,21 @@ One constant in [`src/panel.c`](https://gitlab.gnome.org/World/Phosh/squeekboard
 |---|---|---|
 | 🩹 | [`overlay-layer.patch`](overlay-layer.patch) | The patch itself — one hunk against `src/panel.c` |
 | 🛠️ | [`build.sh`](build.sh) | Checks prerequisites, fetches source, applies the patch, builds a `.deb` |
-| 🤖 | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | Weekly upstream-drift check + `shellcheck` |
+| 🤖 | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | Weekly upstream-drift check, `shellcheck`, diagram check |
+| 🗺️ | [`tools/gen_diagram.py`](tools/gen_diagram.py) | Draws the two diagrams in this README into `docs/assets/` |
 | 🔒 | [`SECURITY.md`](SECURITY.md) | Reporting, and the kiosk caveats of the `OVERLAY` layer |
 
 ---
 
 ## 🗺️ Architecture
 
-The patch is only one link in the chain. For a keyboard to appear *and* type into an Electron app, the compositor, the app and squeekboard all have to cooperate:
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/architecture-dark.svg">
+  <img src="docs/assets/architecture-light.svg" width="100%"
+       alt="A tap in the Electron kiosk enables text-input on labwc, which activates squeekboard; the patched squeekboard draws on the OVERLAY layer above the fullscreen app, and its key taps come back to the app as committed text.">
+</picture>
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant U as 👆 User
-    participant E as 🌐 Electron kiosk
-    participant C as 🪟 labwc
-    participant S as ⌨️ squeekboard
-
-    U->>E: Taps a text field
-    E->>C: text-input: enable<br/>(needs --enable-wayland-ime)
-    C->>S: input-method: activate
-    S->>C: Creates layer-surface on OVERLAY<br/>(needs this patch)
-    C-->>U: Keyboard drawn above the fullscreen window
-    U->>S: Taps keys
-    S->>C: input-method: commit string
-    C->>E: text-input: commit
-    E-->>U: Text appears in the field
-```
-
-Miss the patch and step 5 draws the keyboard where nobody can see it. Miss `--enable-wayland-ime` and step 2 never fires, so the keyboard never opens at all. Both are covered below.
+The patch is only one link in the chain. For a keyboard to appear *and* type into an Electron app, the compositor, the app and squeekboard all have to cooperate. Miss the patch and step 5 draws the keyboard where nobody can see it. Miss `--enable-wayland-ime` and step 2 never fires, so the keyboard never opens at all. Both are covered below.
 
 ---
 
@@ -206,10 +181,14 @@ systemctl --user enable --now squeekboard.service
 Squeekboard-Overlay-Patch/
 ├── .github/
 │   └── workflows/
-│       └── ci.yml          # 🤖 upstream-drift check + shellcheck
+│       └── ci.yml          # 🤖 upstream-drift check + shellcheck + diagram check
 ├── .gitignore              # 🚫 ignores built .deb / extracted source
 ├── overlay-layer.patch     # 🩹 the patch (one hunk, src/panel.c)
 ├── build.sh                # 🛠️ fetch source → patch → build .deb
+├── tools/
+│   └── gen_diagram.py      # 🗺️ draws the diagrams (--check in CI)
+├── docs/
+│   └── assets/             # 🖼️ architecture + layers SVGs, light and dark
 ├── SECURITY.md             # 🔒 reporting + OVERLAY-layer caveats
 ├── LICENSE                 # 📄 GPLv3, matching upstream squeekboard
 └── README.md               # 📖 this file
@@ -219,12 +198,13 @@ Squeekboard-Overlay-Patch/
 
 ## 🧪 Testing
 
-There is no unit-test suite — this repo is a patch and a build script. CI verifies the two things that can actually rot:
+There is no unit-test suite — this repo is a patch and a build script. CI verifies the things that can actually rot:
 
 | | Check | Why |
 |---|---|---|
 | 🩹 | `patch -p1 --dry-run` against **upstream** and the **raspberrypi-ui fork**, then asserts the result selects `OVERLAY` and no longer references `TOP` | A patch that no longer applies is worse than no patch |
 | 🐚 | `shellcheck build.sh` | The build script runs `sudo` — it should be clean |
+| 🗺️ | `python3 tools/gen_diagram.py --check` | The diagrams in this README match the code that draws them |
 
 The patch job also runs on a **weekly schedule**, so if squeekboard changes `src/panel.c` upstream, CI goes red before anyone hits it on a Pi.
 

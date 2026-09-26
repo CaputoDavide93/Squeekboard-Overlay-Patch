@@ -49,3 +49,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Lint build.sh
         run: shellcheck build.sh
+
+  diagrams:
+    name: Diagrams up to date
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check generated SVGs
+        run: python3 tools/gen_diagram.py --check
