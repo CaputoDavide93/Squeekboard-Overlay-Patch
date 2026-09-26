@@ -315,8 +315,4 @@ The upstream-shaped fix would be a runtime option (e.g. `--layer=overlay` or a G
 
 ---
 
-<p align="center">
-  <sub>⭐ If this project helped you, please give it a star! ⭐</sub>
-  <br>
-  <sub>Made with ❤️ by <a href="https://github.com/CaputoDavide93">Davide Caputo</a></sub>
-</p>
+<p align="center"><sub>Made with ❤️ by <a href="https://github.com/CaputoDavide93">Davide Caputo</a></sub></p>
