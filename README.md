@@ -184,11 +184,13 @@ Squeekboard-Overlay-Patch/
 │       └── ci.yml          # 🤖 upstream-drift check + shellcheck + diagram check
 ├── .gitignore              # 🚫 ignores built .deb / extracted source
 ├── overlay-layer.patch     # 🩹 the patch (one hunk, src/panel.c)
-├── build.sh                # 🛠️ fetch source → patch → build .deb
+├── build.sh                # 🛠️ fetch source → apply the patch → build .deb
 ├── tools/
 │   └── gen_diagram.py      # 🗺️ draws the diagrams (--check in CI)
 ├── docs/
 │   └── assets/             # 🖼️ architecture + layers SVGs, light and dark
+├── AGENTS.md               # 🤖 rules for coding agents
+├── CLAUDE.md               # 🤖 imports AGENTS.md for Claude Code
 ├── SECURITY.md             # 🔒 reporting + OVERLAY-layer caveats
 ├── LICENSE                 # 📄 GPLv3, matching upstream squeekboard
 └── README.md               # 📖 this file
@@ -208,14 +210,15 @@ There is no unit-test suite — this repo is a patch and a build script. CI veri
 
 The patch job also runs on a **weekly schedule**, so if squeekboard changes `src/panel.c` upstream, CI goes red before anyone hits it on a Pi.
 
-Run the same checks locally:
+Run the same checks locally, from the root of your clone:
 
 ```bash
 mkdir -p /tmp/sq/src
 curl -fsSL https://gitlab.gnome.org/World/Phosh/squeekboard/-/raw/master/src/panel.c \
   -o /tmp/sq/src/panel.c
-(cd /tmp/sq && patch -p1 --dry-run < ~/Squeekboard-Overlay-Patch/overlay-layer.patch)
+patch -d /tmp/sq -p1 --dry-run < overlay-layer.patch
 shellcheck build.sh
+python3 tools/gen_diagram.py --check
 ```
 
 ---

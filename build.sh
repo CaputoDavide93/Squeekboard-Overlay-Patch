@@ -1,10 +1,19 @@
 #!/usr/bin/env bash
 # Build squeekboard with the OVERLAY layer patch
-# Run this on a Raspberry Pi (arm64) with Debian Trixie / Raspberry Pi OS (Bookworm+)
+# Run this on a Raspberry Pi (arm64) with Raspberry Pi OS Trixie (Debian 13).
+# The default version, 1.43.1-1+rpt1, is the Raspberry Pi OS Trixie package.
 set -euo pipefail
 
 SQUEEKBOARD_VERSION="${1:-1.43.1-1+rpt1}"
 WORK_DIR="${2:-$(mktemp -d)}"
+
+# Resolve the patch path before changing directory.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PATCH_FILE="$SCRIPT_DIR/overlay-layer.patch"
+if [ ! -r "$PATCH_FILE" ]; then
+    echo "ERROR: $PATCH_FILE not found — run build.sh from a full clone of the repo." >&2
+    exit 1
+fi
 
 echo "==> Working in $WORK_DIR"
 cd "$WORK_DIR"
@@ -48,14 +57,19 @@ echo "==> Source directory: $SRCDIR"
 cd "$SRCDIR"
 
 # ── 4. Apply the patch ──
-echo "==> Applying OVERLAY layer patch..."
+echo "==> Applying OVERLAY layer patch ($PATCH_FILE)..."
 PANEL_C="src/panel.c"
-if ! grep -q 'ZWLR_LAYER_SHELL_V1_LAYER_TOP' "$PANEL_C"; then
-    echo "ERROR: Could not find LAYER_TOP in $PANEL_C — source may have changed."
+# --forward refuses a reversed or already-applied patch instead of undoing it.
+if ! patch -p1 --forward --dry-run < "$PATCH_FILE" > /dev/null; then
+    echo "ERROR: overlay-layer.patch does not apply to $SRCDIR — source changed, or it is already patched." >&2
     exit 1
 fi
-
-sed -i 's/ZWLR_LAYER_SHELL_V1_LAYER_TOP/ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY/g' "$PANEL_C"
+patch -p1 --forward < "$PATCH_FILE"
+if grep -q 'ZWLR_LAYER_SHELL_V1_LAYER_TOP' "$PANEL_C" \
+    || ! grep -q 'ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY' "$PANEL_C"; then
+    echo "ERROR: $PANEL_C does not select the OVERLAY layer after patching." >&2
+    exit 1
+fi
 echo "==> Patched: $(grep 'ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY' "$PANEL_C")"
 
 # ── 5. Build ──
