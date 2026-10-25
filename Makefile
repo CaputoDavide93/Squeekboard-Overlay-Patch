@@ -19,4 +19,4 @@ patch-check: ## Dry-run the patch against upstream src/panel.c (needs network)
 	rm -rf .patch-check
 
 social-preview: ## Re-render docs/assets/social-preview.png (needs Google Chrome)
-	python3 tools/social_preview.py
+	python3 tools/brand/brand_kit.py social --repo Squeekboard-Overlay-Patch --tagline "Keep the on-screen keyboard above fullscreen apps on Raspberry Pi kiosks" --chip "Raspberry Pi" --chip labwc --chip Wayland --chip GPLv3

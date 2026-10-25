@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/brand/icon.svg" width="96" alt="Squeekboard Overlay-Layer Patch icon: an on-screen keyboard stacked above two window layers">
+<img src="docs/assets/brand/icon.svg" width="96" alt="Squeekboard Overlay-Layer Patch icon: a keyboard with an upward chevron above it, on a blue rounded tile">
 
 # ⌨️ Squeekboard Overlay-Layer Patch
 
@@ -141,7 +141,7 @@ Squeekboard-Overlay-Patch/
 │       └── ci.yml              # 🤖 patch drift, shellcheck, diagrams, docs
 ├── docs/
 │   ├── assets/
-│   │   ├── brand/              # 🎨 icon
+│   │   ├── brand/              # 🎨 icon (SVG and 256 px PNG)
 │   │   ├── architecture-*.svg  # 🗺️ generated diagram, light and dark
 │   │   ├── layers-*.svg        # 🗺️ generated diagram, light and dark
 │   │   └── social-preview.png  # 🖼️ 1280x640 card, uploaded by hand
@@ -153,7 +153,7 @@ Squeekboard-Overlay-Patch/
 ├── tools/
 │   ├── check_docs.py           # 🧹 punctuation and index checks
 │   ├── gen_diagram.py          # 🗺️ draws the diagrams (--check in CI)
-│   └── social_preview.py       # 🖼️ renders the social card
+│   └── brand/                  # 🖼️ vendored brand kit, renders the social card
 ├── AGENTS.md                   # 🤖 rules for coding agents
 ├── CLAUDE.md                   # 🤖 imports AGENTS.md
 ├── CONTRIBUTING.md             # 🤝 reports and diagnostics
