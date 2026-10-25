@@ -1,8 +1,10 @@
 <div align="center">
 
+<img src="docs/assets/brand/icon.svg" width="96" alt="Squeekboard Overlay-Layer Patch icon: an on-screen keyboard stacked above two window layers">
+
 # ⌨️ Squeekboard Overlay-Layer Patch
 
-**A one-hunk patch that makes the [squeekboard](https://gitlab.gnome.org/World/Phosh/squeekboard) on-screen keyboard render above fullscreen Wayland apps.**
+**Make the squeekboard on-screen keyboard show up above fullscreen apps on Raspberry Pi kiosks running labwc**
 
 ![Shell](https://img.shields.io/badge/Shell-bash-4EAA25?logo=gnubash&logoColor=white)
 ![Raspberry Pi](https://img.shields.io/badge/Raspberry%20Pi-5-C51A4A?logo=raspberrypi&logoColor=white)
@@ -14,47 +16,64 @@
 
 ---
 
-## 🐛 The problem
+## 🐛 Why it exists
 
-On a Raspberry Pi kiosk running a fullscreen Electron/Chromium app under **labwc** (or any wlroots-based compositor), squeekboard is invisible. It starts, receives input-method events, and logs no errors — it is simply drawn behind the fullscreen window.
+You build a touch kiosk on a Raspberry Pi: a fullscreen Electron or Chromium app under labwc. You tap a text field and nothing appears. Squeekboard is running, receives input events and logs no errors. It is drawn behind the fullscreen window.
 
-The cause is the Wayland layer-shell stacking order. Fullscreen surfaces sit *between* the `TOP` and `OVERLAY` layers, and squeekboard requests `TOP`:
+This repo is a one-line patch and a build script. They make squeekboard draw on the layer-shell `OVERLAY` layer, above fullscreen windows, and give you a `.deb` you can install in one build.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/layers-dark.svg">
-  <img src="docs/assets/layers-light.svg" width="100%"
-       alt="Layer-shell stacking from top to bottom is OVERLAY, the fullscreen kiosk app, TOP, then BOTTOM and BACKGROUND, so stock squeekboard on TOP is hidden and the patch moves it to OVERLAY.">
-</picture>
-
-There is no compositor-side setting that fixes this. The layer-shell protocol has no way to say *"let this fullscreen window hide the panel but not the keyboard"*, so the fix has to happen in squeekboard.
-
----
-
-## 🔧 The fix
-
-One constant in [`src/panel.c`](https://gitlab.gnome.org/World/Phosh/squeekboard/-/blob/master/src/panel.c):
-
-```diff
--            "layer", ZWLR_LAYER_SHELL_V1_LAYER_TOP,
-+            "layer", ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY,
-```
-
-`OVERLAY` (layer `3`) stacks above fullscreen surfaces; `TOP` (layer `2`) does not. That single change is the whole patch.
-
-> [!NOTE]
-> This is a deliberate trade-off, not a bug fix. `TOP` is the correct layer for a phone or desktop — a keyboard should not cover system overlays or a lock screen. `OVERLAY` is correct for a locked-down kiosk. See [Why not upstream?](#-why-not-upstream) and [SECURITY.md](SECURITY.md).
-
----
-
-## ✨ What's in here
-
-| | File | What it does |
+| | Stock squeekboard | This patch |
 |---|---|---|
-| 🩹 | [`overlay-layer.patch`](overlay-layer.patch) | The patch itself — one hunk against `src/panel.c` |
-| 🛠️ | [`build.sh`](build.sh) | Checks prerequisites, fetches source, applies the patch, builds a `.deb` |
-| 🤖 | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | Weekly upstream-drift check, `shellcheck`, diagram check |
-| 🗺️ | [`tools/gen_diagram.py`](tools/gen_diagram.py) | Draws the two diagrams in this README into `docs/assets/` |
-| 🔒 | [`SECURITY.md`](SECURITY.md) | Reporting, and the kiosk caveats of the `OVERLAY` layer |
+| Visible over a fullscreen kiosk app | No, drawn behind it | Yes, on the tested setup |
+| Compositor configuration needed | None known to help | None |
+| Rebuild from source | No | Yes, about 15 to 30 minutes on a Pi 5 |
+| Survives `apt upgrade` | Yes | Only with `apt-mark hold squeekboard` |
+| Draws above a lock screen | No | Can, on compositors that place it below `OVERLAY` |
+| Package signed | Yes, by the distribution | No, you build it unsigned |
+
+The one trade-off: `OVERLAY` is right for a locked-down kiosk and wrong for a phone or desktop, where a keyboard should not cover a lock screen. That is why this lives here as a patch and not as an upstream change. See [Why not upstream](#-why-not-upstream).
+
+---
+
+## 🚀 Quick Start
+
+**You need:** a Raspberry Pi on Raspberry Pi OS (Debian Trixie, arm64) with labwc, `sudo`, and about 30 minutes for the build.
+
+**Install in 3 steps:**
+
+1. **Build the patched package** on the Pi:
+
+   ```bash
+   git clone https://github.com/CaputoDavide93/Squeekboard-Overlay-Patch.git
+   cd Squeekboard-Overlay-Patch
+   ./build.sh
+   ```
+
+2. **Install it** with the `dpkg -i` command the script prints, then keep apt from replacing it:
+
+   ```bash
+   sudo apt-mark hold squeekboard
+   ```
+
+3. **Restart the keyboard**, with the kiosk app started using `--enable-wayland-ime`:
+
+   ```bash
+   systemctl --user restart squeekboard
+   ```
+
+For the input-method environment, the systemd units and going back to stock, follow [docs/setup.md](docs/setup.md). There is no graphical interface here, so the repo has no screenshots.
+
+---
+
+## ✨ Features
+
+| | Feature | What it does |
+|---|---|---|
+| 👀 | Keyboard above fullscreen | One hunk in `src/panel.c` moves squeekboard from `TOP` to `OVERLAY` |
+| 🛠️ | One-command build | `build.sh` checks prerequisites, fetches the source, applies the patch and builds a `.deb` |
+| 🛡️ | Safe to re-run | The script refuses a reversed or already-applied patch and checks the result selects `OVERLAY` |
+| 📆 | Upstream watch | CI applies the patch to upstream and the Raspberry Pi fork every week, so drift shows before you hit it |
+| 🗺️ | Drawn diagrams | Generated SVGs for the layer stack and the input-method chain, checked in CI |
 
 ---
 
@@ -66,112 +85,50 @@ One constant in [`src/panel.c`](https://gitlab.gnome.org/World/Phosh/squeekboard
        alt="A tap in the Electron kiosk enables text-input on labwc, which activates squeekboard; the patched squeekboard draws on the OVERLAY layer above the fullscreen app, and its key taps come back to the app as committed text.">
 </picture>
 
-The patch is only one link in the chain. For a keyboard to appear *and* type into an Electron app, the compositor, the app and squeekboard all have to cooperate. Miss the patch and step 5 draws the keyboard where nobody can see it. Miss `--enable-wayland-ime` and step 2 never fires, so the keyboard never opens at all. Both are covered below.
+The patch is one link in the chain. Miss the patch and step 5 draws the keyboard where nobody can see it. Miss `--enable-wayland-ime` and step 2 never fires, so the keyboard never opens. The layer stack behind it:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/layers-dark.svg">
+  <img src="docs/assets/layers-light.svg" width="100%"
+       alt="Layer-shell stacking from top to bottom is OVERLAY, the fullscreen kiosk app, TOP, then BOTTOM and BACKGROUND, so stock squeekboard on TOP is hidden and the patch moves it to OVERLAY.">
+</picture>
+
+The change itself:
+
+```diff
+-            "layer", ZWLR_LAYER_SHELL_V1_LAYER_TOP,
++            "layer", ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY,
+```
+
+More in [docs/how-it-works.md](docs/how-it-works.md).
 
 ---
 
-## 🚀 Quick Start
+## ✅ Tested on
 
-### Option A — Automated build (on the Pi)
+| Component | Version | Checked by |
+|---|---|---|
+| Raspberry Pi | 5 (arm64) | Author, by hand |
+| OS | Raspberry Pi OS (Debian Trixie) | Author, by hand |
+| Compositor | labwc 0.9.x | Author, by hand |
+| squeekboard | 1.43.1-1+rpt1 | Author, by hand |
+| Kiosk app | TouchKio (Electron) | Author, by hand |
+| Patch applies to upstream `src/panel.c` | master | CI, weekly |
+| Patch applies to Raspberry Pi fork `src/panel.c` | master | CI, weekly |
 
-```bash
-git clone https://github.com/CaputoDavide93/Squeekboard-Overlay-Patch.git
-cd Squeekboard-Overlay-Patch
-chmod +x build.sh
-./build.sh
-```
-
-The script verifies APT source repositories are enabled, installs build dependencies, fetches the squeekboard source, applies the patch and builds a `.deb`. It takes ~15–30 minutes on a Pi 5, longer on a Pi 4, and prints the `dpkg -i` command to run at the end.
-
-Both arguments are optional:
-
-```bash
-./build.sh [SQUEEKBOARD_VERSION] [WORK_DIR]
-./build.sh 1.43.1-1+rpt1 ~/build      # defaults: 1.43.1-1+rpt1, a fresh mktemp dir
-```
-
-### Option B — Manual patch
-
-```bash
-# Get the source (needs deb-src enabled — see Troubleshooting)
-apt-get source squeekboard
-cd squeekboard-*/
-
-# Apply the patch
-patch -p1 < /path/to/overlay-layer.patch
-
-# Build and install
-dpkg-buildpackage -us -uc -b
-sudo dpkg -i ../squeekboard_*.deb
-```
-
-Then restart the keyboard:
-
-```bash
-systemctl --user restart squeekboard
-```
+**Unverified:** Raspberry Pi 4, x86 machines, other wlroots compositors, other kiosk apps, Raspberry Pi OS releases before Trixie. If you try one, [tell me](#-contributing).
 
 ---
 
 ## ⚙️ Configuration
 
-Rebuilding squeekboard makes the keyboard *visible*. These three pieces make it *work*.
+Rebuilding makes the keyboard visible. Three more pieces make it type, all in [docs/setup.md](docs/setup.md):
 
-### 1. Input-method environment variables
+1. `GTK_IM_MODULE=wayland` and `QT_IM_MODULE=wayland` in the compositor environment.
+2. `--enable-wayland-ime` on the Electron or Chromium app.
+3. A `squeekboard` systemd user service that starts after the kiosk app.
 
-In your compositor's environment config (for labwc, `~/.config/labwc/environment`):
-
-```bash
-GTK_IM_MODULE=wayland
-QT_IM_MODULE=wayland
-```
-
-### 2. Electron/Chromium IME flag
-
-Chromium-based apps only speak the Wayland `text-input` protocol when explicitly told to. Without this flag the keyboard never opens, patched or not:
-
-```bash
---enable-wayland-ime
-```
-
-For example, with [TouchKio](https://github.com/leukipp/touchkio):
-
-```ini
-# ~/.config/systemd/user/touchkio.service
-[Service]
-ExecStart=/usr/bin/touchkio --enable-wayland-ime --web-url=http://your-ha:8123/
-```
-
-### 3. squeekboard user service
-
-```ini
-# ~/.config/systemd/user/squeekboard.service
-[Unit]
-Description=squeekboard on-screen keyboard
-After=touchkio.service
-Wants=touchkio.service
-
-[Service]
-Type=simple
-ExecStartPre=/bin/sleep 3
-ExecStart=/usr/bin/squeekboard
-Restart=on-failure
-RestartSec=5
-Environment=XDG_RUNTIME_DIR=/run/user/%U
-Environment=WAYLAND_DISPLAY=wayland-0
-Environment=GDK_BACKEND=wayland
-Environment=GTK_THEME=Adwaita:dark
-
-[Install]
-WantedBy=default.target
-```
-
-```bash
-systemctl --user enable --now squeekboard.service
-```
-
-> [!TIP]
-> `ExecStartPre=/bin/sleep 3` lets the compositor and kiosk app settle before squeekboard binds its layer surface. Without it, squeekboard can start before the compositor is accepting layer-shell clients.
+`build.sh` takes two optional arguments: `./build.sh [SQUEEKBOARD_VERSION] [WORK_DIR]`. The defaults are `1.43.1-1+rpt1` and a fresh temporary directory. The repo reads no environment variables.
 
 ---
 
@@ -181,140 +138,90 @@ systemctl --user enable --now squeekboard.service
 Squeekboard-Overlay-Patch/
 ├── .github/
 │   └── workflows/
-│       └── ci.yml          # 🤖 upstream-drift check + shellcheck + diagram check
-├── .gitignore              # 🚫 ignores built .deb / extracted source
-├── overlay-layer.patch     # 🩹 the patch (one hunk, src/panel.c)
-├── build.sh                # 🛠️ fetch source → apply the patch → build .deb
-├── tools/
-│   └── gen_diagram.py      # 🗺️ draws the diagrams (--check in CI)
+│       └── ci.yml              # 🤖 patch drift, shellcheck, diagrams, docs
 ├── docs/
-│   └── assets/             # 🖼️ architecture + layers SVGs, light and dark
-├── AGENTS.md               # 🤖 rules for coding agents
-├── CLAUDE.md               # 🤖 imports AGENTS.md for Claude Code
-├── SECURITY.md             # 🔒 reporting + OVERLAY-layer caveats
-├── LICENSE                 # 📄 GPLv3, matching upstream squeekboard
-└── README.md               # 📖 this file
+│   ├── assets/
+│   │   ├── brand/              # 🎨 icon
+│   │   ├── architecture-*.svg  # 🗺️ generated diagram, light and dark
+│   │   ├── layers-*.svg        # 🗺️ generated diagram, light and dark
+│   │   └── social-preview.png  # 🖼️ 1280x640 card, uploaded by hand
+│   ├── README.md               # 📚 index
+│   ├── setup.md                # 🚀 step by step
+│   ├── how-it-works.md         # 🧠 the stacking problem and the fix
+│   ├── troubleshooting.md      # 🛠️ by symptom
+│   └── faq.md                  # ❓ short answers
+├── tools/
+│   ├── check_docs.py           # 🧹 punctuation and index checks
+│   ├── gen_diagram.py          # 🗺️ draws the diagrams (--check in CI)
+│   └── social_preview.py       # 🖼️ renders the social card
+├── AGENTS.md                   # 🤖 rules for coding agents
+├── CLAUDE.md                   # 🤖 imports AGENTS.md
+├── CONTRIBUTING.md             # 🤝 reports and diagnostics
+├── LICENSE                     # 📄 GPLv3, matching upstream squeekboard
+├── Makefile                    # ✅ make check
+├── SECURITY.md                 # 🔒 reporting and OVERLAY caveats
+├── build.sh                    # 🛠️ fetch, patch, build the .deb
+├── llms.txt                    # 🤖 plain-text summary for search tools
+├── overlay-layer.patch         # 🩹 the patch, one hunk in src/panel.c
+└── README.md                   # 📖 this file
 ```
 
 ---
 
 ## 🧪 Testing
 
-There is no unit-test suite — this repo is a patch and a build script. CI verifies the things that can actually rot:
+There is no unit-test suite. This repo is a patch and a build script, and CI checks what can rot:
 
 | | Check | Why |
 |---|---|---|
-| 🩹 | `patch -p1 --dry-run` against **upstream** and the **raspberrypi-ui fork**, then asserts the result selects `OVERLAY` and no longer references `TOP` | A patch that no longer applies is worse than no patch |
-| 🐚 | `shellcheck build.sh` | The build script runs `sudo` — it should be clean |
-| 🗺️ | `python3 tools/gen_diagram.py --check` | The diagrams in this README match the code that draws them |
+| 🩹 | `patch -p1 --dry-run` against upstream and the Raspberry Pi fork, then asserts the result selects `OVERLAY` and no longer references `TOP` | A patch that stops applying is worse than none |
+| 🐚 | `shellcheck build.sh` | The script runs `sudo` |
+| 🗺️ | `python3 tools/gen_diagram.py --check` | Diagrams match the code that draws them |
+| 🧹 | `python3 tools/check_docs.py` | No em or en dashes, every doc is indexed |
 
-The patch job also runs on a **weekly schedule**, so if squeekboard changes `src/panel.c` upstream, CI goes red before anyone hits it on a Pi.
-
-Run the same checks locally, from the root of your clone:
-
-```bash
-mkdir -p /tmp/sq/src
-curl -fsSL https://gitlab.gnome.org/World/Phosh/squeekboard/-/raw/master/src/panel.c \
-  -o /tmp/sq/src/panel.c
-patch -d /tmp/sq -p1 --dry-run < overlay-layer.patch
-shellcheck build.sh
-python3 tools/gen_diagram.py --check
-```
+Run the offline checks with `make check`. `make patch-check` also downloads upstream `src/panel.c` and dry-runs the patch.
 
 ---
 
 ## 🛠️ Troubleshooting
 
-<details>
-<summary><b>The keyboard still isn't visible after installing</b></summary>
+The common cases, with the full list in [docs/troubleshooting.md](docs/troubleshooting.md):
 
-Confirm the running binary is actually the patched one — a `dpkg -i` that failed, or an `apt upgrade` afterwards, silently restores the stock package:
-
-```bash
-systemctl --user restart squeekboard
-dpkg -l squeekboard            # is the version the one you built?
-apt-mark hold squeekboard      # stop apt replacing it later
-```
-
-If it is patched and still hidden, your compositor may place its own surfaces above `OVERLAY`. Check what layer the kiosk app requests — a fullscreen *layer-shell* surface on `OVERLAY` will tie with the keyboard rather than sit below it.
-</details>
-
-<details>
-<summary><b>The keyboard appears, but typing does nothing</b></summary>
-
-That is the input-method chain, not this patch — the keyboard is drawing but no `text-input` connection exists. Check, in order:
-
-1. The app is launched with `--enable-wayland-ime`.
-2. `GTK_IM_MODULE=wayland` / `QT_IM_MODULE=wayland` are set in the compositor environment (not just your shell profile — the compositor must inherit them).
-3. `systemctl --user status squeekboard` shows it running under the same `WAYLAND_DISPLAY` as the compositor.
-</details>
-
-<details>
-<summary><b><code>patch: **** malformed patch</code> or hunk failures</b></summary>
-
-Apply from the root of the extracted source tree — the patch uses `a/src/panel.c` paths and expects `-p1`:
-
-```bash
-cd squeekboard-*/          # not the parent directory
-patch -p1 < overlay-layer.patch
-```
-
-If the hunk genuinely fails, upstream may have changed `src/panel.c`. Check the [CI status](https://github.com/CaputoDavide93/Squeekboard-Overlay-Patch/actions/workflows/ci.yml) — if it is red, the patch needs regenerating; please open an issue.
-</details>
-
-<details>
-<summary><b><code>apt-get source</code> or <code>build-dep</code> fails</b></summary>
-
-Source repositories are not enabled by default on Debian/Raspberry Pi OS. `build.sh` checks this and prints the fix; manually:
-
-```bash
-# Raspberry Pi OS Trixie / Debian 13+ (deb822 format)
-sudo sed -i 's/^Types: deb$/Types: deb deb-src/' \
-    /etc/apt/sources.list.d/debian.sources \
-    /etc/apt/sources.list.d/raspi.sources
-
-# Older releases: uncomment the deb-src lines in /etc/apt/sources.list
-
-sudo apt-get update
-```
-</details>
-
----
-
-## ✅ Tested on
-
-| Component | Version |
+| Symptom | First check |
 |---|---|
-| Raspberry Pi | 5 (arm64) |
-| OS | Raspberry Pi OS (Debian Trixie) |
-| Compositor | labwc 0.9.x |
-| squeekboard | 1.43.1-1+rpt1 |
-| Kiosk app | TouchKio (Electron) |
-| Home Assistant | 2026.2.x |
+| Keyboard still hidden | `dpkg -l squeekboard`: is it your build, and is it held? |
+| Keyboard shows, typing does nothing | App started with `--enable-wayland-ime`, and `GTK_IM_MODULE=wayland` in the compositor environment |
+| Keyboard never opens | Same flag, then restart the app |
+| `patch` fails | Run from inside the extracted `squeekboard-*/` with `-p1` |
+| `apt-get source` fails | Enable `deb-src`, see the doc |
 
 ---
 
-## 🧭 Why not upstream?
+## 🧭 Why not upstream
 
-This patch makes squeekboard *always* use the overlay layer, which is right for a fullscreen kiosk and wrong for a general-purpose device — on a phone or desktop the keyboard should not cover system overlays or a lock screen. That unconditional behaviour is why it lives here as a patch rather than a pull request.
+The patch makes squeekboard always use the overlay layer. That suits a fullscreen kiosk and not a general-purpose device, so it is not a good pull request as written. The upstream-shaped fix is a runtime option (a flag or a setting) that kiosk builds turn on. Related discussions:
 
-The upstream-shaped fix would be a runtime option (e.g. `--layer=overlay` or a GSetting), letting kiosk builds opt in without changing the default. Relevant issues:
-
-- [raspberrypi-ui/squeekboard#13](https://github.com/raspberrypi-ui/squeekboard/issues/13) — squeekboard invisible in fullscreen; forcing layer 3 confirmed as the fix (**open**)
-- [labwc/labwc#2926](https://github.com/labwc/labwc/issues/2926) — squeekboard not visible over fullscreen Chromium (**closed**, no compositor-side option added)
-- [labwc/labwc#1873](https://github.com/labwc/labwc/issues/1873) — virtual keyboard discussion
+- [raspberrypi-ui/squeekboard#13](https://github.com/raspberrypi-ui/squeekboard/issues/13): squeekboard invisible in fullscreen, forcing layer 3 reported as the fix (open when last checked)
+- [labwc/labwc#2926](https://github.com/labwc/labwc/issues/2926): squeekboard not visible over fullscreen Chromium (closed, no compositor option added)
+- [labwc/labwc#1873](https://github.com/labwc/labwc/issues/1873): virtual keyboard discussion
 
 ---
 
 ## 🔒 Security
 
-`build.sh` uses `sudo` to install build dependencies, and the resulting `.deb` is unsigned (`-us -uc`). The `OVERLAY` layer also has a real consequence on non-kiosk systems: it can draw above a lock screen. Both are documented in [SECURITY.md](SECURITY.md), along with how to report a vulnerability.
+`build.sh` uses `sudo` to install build dependencies, and the resulting `.deb` is unsigned. On non-kiosk systems the `OVERLAY` layer can draw above a lock screen. Both are covered in [SECURITY.md](SECURITY.md), with how to report a vulnerability.
+
+---
+
+## 🤝 Contributing
+
+Reports from hardware or setups not in the tested table help most. Open an [issue](https://github.com/CaputoDavide93/Squeekboard-Overlay-Patch/issues) saying what worked or failed, with the diagnostics listed in [CONTRIBUTING.md](CONTRIBUTING.md). Run `make check` before sending a pull request.
 
 ---
 
 ## 📄 License
 
-[GPLv3](LICENSE) — the same license as [squeekboard](https://gitlab.gnome.org/World/Phosh/squeekboard/-/blob/master/COPYING), since this repo distributes a patch against its source.
+[GPLv3](LICENSE), the same license as [squeekboard](https://gitlab.gnome.org/World/Phosh/squeekboard/-/blob/master/COPYING), since this repo distributes a patch against its source.
 
 ---
 
