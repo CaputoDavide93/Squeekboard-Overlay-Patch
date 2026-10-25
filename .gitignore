@@ -6,3 +6,6 @@
 *.buildinfo
 *.changes
 squeekboard-*/
+
+# Local patch check scratch
+.patch-check/
