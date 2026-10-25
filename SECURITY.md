@@ -9,7 +9,7 @@ rather than opening a public issue. You should get a response within a week.
 ## What this repo contains
 
 A source patch and a build script. There is no service, no network listener, and no
-runtime component — nothing here processes personal data, and the repo reads no
+runtime component, so nothing here processes personal data, and the repo reads no
 credentials, tokens, or environment secrets.
 
 ## What to be aware of
@@ -18,7 +18,7 @@ credentials, tokens, or environment secrets.
   are not enabled, tells you to edit `/etc/apt/sources.list*`. Read it before running it,
   as with any script that asks for elevated privileges.
 - **The patch widens the keyboard's stacking order.** Moving squeekboard from the `TOP`
-  layer to `OVERLAY` is deliberate — it is what makes the keyboard visible over a
+  layer to `OVERLAY` is deliberate and is what makes the keyboard visible over a
   fullscreen kiosk app. Be aware of the consequence: an `OVERLAY` surface also draws above
   a compositor's screen-lock surface on compositors that place the lock screen below
   `OVERLAY`. On a locked-down kiosk that is usually irrelevant; on a general-purpose
