@@ -154,8 +154,7 @@ Squeekboard-Overlay-Patch/
 │   ├── check_docs.py           # 🧹 punctuation and index checks
 │   ├── gen_diagram.py          # 🗺️ draws the diagrams (--check in CI)
 │   └── brand/                  # 🖼️ vendored brand kit, renders the social card
-├── AGENTS.md                   # 🤖 rules for coding agents
-├── CLAUDE.md                   # 🤖 imports AGENTS.md
+├── AGENTS.md                   # 🤖 index for anyone changing the repo: checks, layout, rules
 ├── CONTRIBUTING.md             # 🤝 reports and diagnostics
 ├── LICENSE                     # 📄 GPLv3, matching upstream squeekboard
 ├── Makefile                    # ✅ make check
