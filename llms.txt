@@ -1,0 +1,27 @@
+# Squeekboard Overlay-Layer Patch
+
+> A one-line patch and a build script that make the squeekboard on-screen keyboard draw on the Wayland layer-shell OVERLAY layer instead of TOP, so it appears above fullscreen apps on Raspberry Pi kiosks running the labwc compositor. Free and open source under GPLv3, the same license as squeekboard. build.sh fetches the squeekboard source, applies the patch and builds an unsigned .deb.
+
+Key facts:
+
+- Problem: squeekboard asks for the layer-shell TOP layer, wlroots-based compositors such as labwc draw fullscreen windows above TOP, so in a fullscreen Electron or Chromium kiosk the keyboard runs but is drawn behind the page.
+- Fix: one hunk in src/panel.c changes ZWLR_LAYER_SHELL_V1_LAYER_TOP to ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY.
+- Tested by hand: Raspberry Pi 5 (arm64), Raspberry Pi OS (Debian Trixie), labwc 0.9.x, squeekboard 1.43.1-1+rpt1, TouchKio (Electron) kiosk. Unverified: Raspberry Pi 4, x86, other wlroots compositors, other kiosk apps, releases before Trixie.
+- Tested by CI: the patch applies to upstream and to the Raspberry Pi fork src/panel.c, weekly.
+- Install: run ./build.sh on the Pi (about 15 to 30 minutes on a Pi 5), install the printed .deb with dpkg -i, run sudo apt-mark hold squeekboard, restart the squeekboard user service.
+- Typing also needs GTK_IM_MODULE=wayland and QT_IM_MODULE=wayland in the compositor environment, and --enable-wayland-ime on Electron or Chromium apps.
+- Trade-off: OVERLAY can draw above a lock screen. Right for a locked-down kiosk, wrong for a phone or desktop. Packages built with build.sh are unsigned.
+- Not affiliated with the squeekboard, labwc or Raspberry Pi projects.
+
+## Docs
+
+- [README](https://github.com/CaputoDavide93/Squeekboard-Overlay-Patch/blob/main/README.md): why it exists, comparison with stock squeekboard, quick start, tested table
+- [Setup](https://github.com/CaputoDavide93/Squeekboard-Overlay-Patch/blob/main/docs/setup.md): build, install, input-method environment, services, going back to stock
+- [How it works](https://github.com/CaputoDavide93/Squeekboard-Overlay-Patch/blob/main/docs/how-it-works.md): layer-shell stacking, the patch, what build.sh does
+- [Troubleshooting](https://github.com/CaputoDavide93/Squeekboard-Overlay-Patch/blob/main/docs/troubleshooting.md): symptoms and fixes
+- [FAQ](https://github.com/CaputoDavide93/Squeekboard-Overlay-Patch/blob/main/docs/faq.md): compatibility, safety, upgrades
+
+## Optional
+
+- [Security](https://github.com/CaputoDavide93/Squeekboard-Overlay-Patch/blob/main/SECURITY.md): reporting and the OVERLAY caveats
+- [Contributing](https://github.com/CaputoDavide93/Squeekboard-Overlay-Patch/blob/main/CONTRIBUTING.md): how to report untested setups

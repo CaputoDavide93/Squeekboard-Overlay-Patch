@@ -57,3 +57,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check generated SVGs
         run: python3 tools/gen_diagram.py --check
+
+  docs:
+    name: Docs checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: No em or en dashes, every doc indexed
+        run: python3 tools/check_docs.py
