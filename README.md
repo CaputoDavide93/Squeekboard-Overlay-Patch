@@ -137,8 +137,8 @@ Rebuilding makes the keyboard visible. Three more pieces make it type, all in [d
 ```text
 Squeekboard-Overlay-Patch/
 ├── .github/
-│   └── workflows/
-│       └── ci.yml              # 🤖 patch drift, shellcheck, diagrams, docs
+│   ├── dependabot.yml          # 🔄 monthly GitHub Actions updates
+│   └── workflows/ci.yml        # 🤖 patch drift, shellcheck, diagrams, docs
 ├── docs/
 │   ├── assets/
 │   │   ├── brand/              # 🎨 icon (SVG and 256 px PNG)
