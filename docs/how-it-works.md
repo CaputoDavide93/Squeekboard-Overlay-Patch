@@ -8,7 +8,7 @@ Squeekboard asks for `TOP`. On a phone that is right: the keyboard sits under sy
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/layers-dark.svg">
-  <img src="assets/layers-light.svg" width="100%" alt="Layer-shell stacking from top to bottom is OVERLAY, the fullscreen kiosk app, TOP, then BOTTOM and BACKGROUND, so stock squeekboard on TOP is hidden and the patch moves it to OVERLAY.">
+  <img src="assets/layers-light.svg" width="100%" alt="Layer-shell stacking from top to bottom is OVERLAY, the fullscreen kiosk app, TOP, then BOTTOM and BACKGROUND, so stock Squeekboard on TOP is hidden and the patch moves it to OVERLAY.">
 </picture>
 
 The layer-shell protocol has no way to say "hide the panel but not the keyboard", and the labwc issue linked from the README was closed without adding a compositor option. So the change has to happen in squeekboard.
@@ -39,7 +39,7 @@ A visible keyboard is only half of typing. All of these must hold:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/architecture-dark.svg">
-  <img src="assets/architecture-light.svg" width="100%" alt="A tap in the Electron kiosk enables text-input on labwc, which activates squeekboard; the patched squeekboard draws on the OVERLAY layer above the fullscreen app, and its key taps come back to the app as committed text.">
+  <img src="assets/architecture-light.svg" width="100%" alt="A tap in the Electron kiosk enables text-input on labwc, which activates Squeekboard; the patched Squeekboard draws on the OVERLAY layer above the fullscreen app, and its key taps come back to the app as committed text.">
 </picture>
 
 - The app opens a text-input connection (Electron and Chromium need `--enable-wayland-ime`).

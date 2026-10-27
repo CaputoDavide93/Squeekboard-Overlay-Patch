@@ -222,40 +222,51 @@ class Canvas:
 # ── the diagrams ──────────────────────────────────────────────────────────
 
 def architecture(scheme):
-    """The input-method round trip. A sequence, so it gets lifelines."""
-    k = Canvas(1180, 540, scheme,
+    """The input-method round trip. A sequence, so it is cards and arrows:
+    the request path left to right, the replies back underneath."""
+    k = Canvas(1180, 430, scheme,
                "A tap in the Electron kiosk enables text-input on labwc, which activates "
-               "squeekboard; the patched squeekboard draws on the OVERLAY layer above the "
+               "Squeekboard; the patched Squeekboard draws on the OVERLAY layer above the "
                "fullscreen app, and its key taps come back to the app as committed text.")
     c = k.c
-    U, E, L, S = 120, 440, 760, 1060
-    lanes = [("User", U, "user", "plain"), ("Electron kiosk", E, "globe", "plain"),
-             ("labwc", L, "frame", "plain"), ("squeekboard", S, "code", "accent")]
-    top, bottom = 84, 470
-    for name, x, icon, tone in lanes:
-        w = 196
-        k.add(k.box(x - w / 2, 26, w, 44, name, icon=icon, tone=tone),
-              f'<line x1="{x}" y1="{top - 14}" x2="{x}" y2="{bottom}" stroke="{c["border"]}" '
-              f'stroke-width="1" stroke-dasharray="4 5"/>')
+    W, H, y0 = 170, 116, 50
+    xs = [24, 345, 665, 986]
+    fwd, back = y0 + 34, y0 + 82
 
-    def msg(y, x1, x2, text, *, dash=False, note=None):
-        d = 8 if x2 > x1 else -8
-        out = k.edge([(x1 + d, y), (x2 - d, y)], label=text, dash=dash)
-        if note:
-            out += k.text((x1 + x2) / 2, y + 17, note, size=11.5, colour=c["sub"],
-                          anchor="middle")
-        return out
+    def note(x, y, *lines):
+        return "".join(k.text(x, y + i * 13, t, size=11.5, font=MONO, colour=c["chip"],
+                              anchor="middle") for i, t in enumerate(lines))
+
+    def gap(i):
+        return xs[i] + W + 8, xs[i + 1] - 8, (xs[i] + W + xs[i + 1]) / 2
 
     k.add(
-        msg(104, U, E, "1  tap a text field"),
-        msg(150, E, L, "2  text-input: enable", note="needs --enable-wayland-ime"),
-        msg(196, L, S, "3  input-method: activate"),
-        msg(242, S, L, "4  layer surface on OVERLAY", note="needs this patch"),
-        msg(292, L, U, "5  keyboard drawn above the fullscreen app", dash=True),
-        msg(334, U, S, "6  tap keys"),
-        msg(376, S, L, "7  input-method: commit string"),
-        msg(418, L, E, "8  text-input: commit"),
-        msg(460, E, U, "9  text appears in the field", dash=True),
+        k.box(xs[0], y0, W, H, "User", ["the person at the kiosk"], icon="user"),
+        k.box(xs[1], y0, W, H, "Electron Kiosk", ["text-input client,", "--enable-wayland-ime"], icon="globe"),
+        k.box(xs[2], y0, W, H, "labwc", ["Wayland compositor"], icon="frame"),
+        k.box(xs[3], y0, W, H, "Squeekboard", ["on-screen keyboard,", "asks for OVERLAY"], icon="code", tone="accent"),
+    )
+    steps = [("1 tap a text field", None, "9 text appears", None),
+             ("2 text-input:", "enable", "8 text-input:", "commit"),
+             ("3 input-method:", "activate", "7 input-method:", "commit string")]
+    for i, (f1, f2, b1, b2) in enumerate(steps):
+        x1, x2, cx = gap(i)
+        k.add(k.edge([(x1, fwd), (x2, fwd)]),
+              note(cx, fwd - 22 if f2 else fwd - 9, *([f1, f2] if f2 else [f1])),
+              k.edge([(x2, back), (x1, back)], dash=(i == 0)),
+              note(cx, back + 17, *([b1, b2] if b2 else [b1])))
+    # Row two: the patched keyboard on screen, and the user typing on it.
+    y1, h1 = 250, 90
+    k.add(
+        k.box(xs[0], y1, W, h1, "User Taps Keys", icon="user"),
+        k.box(xs[3], y1, W, h1, "Overlay Layer", ["the patched keyboard,", "above the kiosk app"], icon="library"),
+        k.edge([(xs[3] + W / 2, y0 + H + 8), (xs[3] + W / 2, y1 - 8)]),
+        k.text(xs[3] + W / 2 - 12, y0 + H + 52, "4 layer surface on OVERLAY", size=11.5, font=MONO,
+               colour=c["chip"], anchor="end"),
+        k.text(xs[3] + W / 2 - 12, y0 + H + 66, "needs this patch", size=11.5, colour=c["sub"], anchor="end"),
+        k.edge([(xs[3] - 8, y1 + 28), (xs[0] + W + 8, y1 + 28)], dash=True,
+               label="5 keyboard drawn above the fullscreen app", label_dy=-9),
+        k.edge([(xs[0] + W + 8, y1 + 64), (xs[3] - 8, y1 + 64)], label="6 tap keys", label_dy=-9),
         k.footer("Miss the patch and step 5 draws the keyboard behind the app. "
                  "Miss --enable-wayland-ime and step 2 never happens."),
     )
@@ -266,18 +277,18 @@ def layers(scheme):
     """The layer-shell stack, top to bottom, and the one constant the patch moves."""
     k = Canvas(1180, 450, scheme,
                "Layer-shell stacking from top to bottom: OVERLAY, the fullscreen kiosk "
-               "app, TOP, then BOTTOM and BACKGROUND. squeekboard asks for TOP, under the "
+               "app, TOP, then BOTTOM and BACKGROUND. Squeekboard asks for TOP, under the "
                "fullscreen app; the patch moves it to OVERLAY.")
     W, H, x = 800, 72, 24
     ys = [40, 126, 212, 298]
     k.add(
-        k.box(x, ys[0], W, H, "OVERLAY  ·  layer 3", ["Where the patched keyboard is drawn"],
+        k.box(x, ys[0], W, H, "Overlay  ·  Layer 3", ["Where the patched keyboard is drawn"],
               icon="code", tone="accent"),
-        k.box(x, ys[1], W, H, "Fullscreen surfaces", ["The kiosk app, covering everything below it"],
+        k.box(x, ys[1], W, H, "Fullscreen Surfaces", ["The kiosk app, covering everything below it"],
               icon="tv"),
-        k.box(x, ys[2], W, H, "TOP  ·  layer 2", ["Where stock squeekboard asks to be, so it is hidden"],
+        k.box(x, ys[2], W, H, "Top  ·  Layer 2", ["Where stock Squeekboard asks to be, so it is hidden"],
               icon="code", tone="warn"),
-        k.box(x, ys[3], W, H, "BOTTOM and BACKGROUND  ·  layers 1 and 0", ["Panels and wallpaper"],
+        k.box(x, ys[3], W, H, "Bottom and Background  ·  Layers 1 and 0", ["Panels and wallpaper"],
               icon="library", tone="soft"),
         k.edge([(x + W + 8, ys[2] + H / 2), (x + W + 60, ys[2] + H / 2),
                 (x + W + 60, ys[0] + H / 2), (x + W + 8, ys[0] + H / 2)]),
