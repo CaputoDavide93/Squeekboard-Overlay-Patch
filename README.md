@@ -82,7 +82,7 @@ For the input-method environment, the systemd units and going back to stock, fol
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/architecture-dark.svg">
   <img src="docs/assets/architecture-light.svg" width="100%"
-       alt="A tap in the Electron kiosk enables text-input on labwc, which activates squeekboard; the patched squeekboard draws on the OVERLAY layer above the fullscreen app, and its key taps come back to the app as committed text.">
+       alt="A tap in the Electron kiosk enables text-input on labwc, which activates Squeekboard; the patched Squeekboard draws on the OVERLAY layer above the fullscreen app, and its key taps come back to the app as committed text.">
 </picture>
 
 The patch is one link in the chain. Miss the patch and step 5 draws the keyboard where nobody can see it. Miss `--enable-wayland-ime` and step 2 never fires, so the keyboard never opens. The layer stack behind it:
@@ -90,7 +90,7 @@ The patch is one link in the chain. Miss the patch and step 5 draws the keyboard
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/layers-dark.svg">
   <img src="docs/assets/layers-light.svg" width="100%"
-       alt="Layer-shell stacking from top to bottom is OVERLAY, the fullscreen kiosk app, TOP, then BOTTOM and BACKGROUND, so stock squeekboard on TOP is hidden and the patch moves it to OVERLAY.">
+       alt="Layer-shell stacking from top to bottom is OVERLAY, the fullscreen kiosk app, TOP, then BOTTOM and BACKGROUND, so stock Squeekboard on TOP is hidden and the patch moves it to OVERLAY.">
 </picture>
 
 The change itself:
